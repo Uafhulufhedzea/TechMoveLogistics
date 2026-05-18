@@ -10,6 +10,9 @@
 <div class="row">
     <div class="col-md-6">
         <form asp-action="Create" method="post">
+            <!-- 1. CRITICAL SECURITY FIX: Protects the POST transaction mapping -->
+            @Html.AntiForgeryToken()
+            
             <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
             <div class="form-group mb-3">
@@ -26,16 +29,16 @@
                 <span asp-validation-for="Description" class="text-danger"></span>
             </div>
 
-            
             <div class="alert alert-info py-2 mb-3">
                 <small class="fw-bold"> Live API Exchange Rate: 1 USD = @ViewBag.ExchangeRate ZAR</small>
-               
-                <input type="hidden" id="exchangeRate" value="@ViewBag.ExchangeRate" />
+                <!-- 2. CRITICAL BINDING FIX: Added name="exchangeRate" matching controller parameter -->
+                <input type="hidden" id="exchangeRate" name="exchangeRate" value="@ViewBag.ExchangeRate" />
             </div>
 
             <div class="form-group mb-3">
                 <label class="control-label fw-bold">Cost in USD ($)</label>
-                <input type="number" id="usdAmount" class="form-control" step="0.01" placeholder="0.00" required />
+                <!-- 3. CRITICAL BINDING FIX: Added name="usdAmount" matching controller parameter -->
+                <input type="number" id="usdAmount" name="usdAmount" class="form-control" step="0.01" placeholder="0.00" required />
             </div>
 
             <div class="form-group mb-3">
@@ -63,13 +66,11 @@
         const zarInput = document.getElementById("zarAmount");
         const rateInput = document.getElementById("exchangeRate");
 
-        // Attach event listener to calculate live when user types
         usdInput.addEventListener("input", function () {
         const usdValue = parseFloat(usdInput.value);
         const rate = parseFloat(rateInput.value);
 
         if (!isNaN(usdValue) && !isNaN(rate)) {
-        // Calculate the local cost matching the requirement
         const calculatedZar = usdValue * rate;
         zarInput.value = calculatedZar.toFixed(2);
         } else {

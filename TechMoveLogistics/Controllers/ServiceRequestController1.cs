@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using TechMoveLogistics.Data;
 using TechMoveLogistics.Models;
@@ -9,26 +8,25 @@ namespace TechMoveLogistics.Controllers
 {
     public class ServiceRequestsController : Controller
     {
-        private readonly LogisticsDbContext _context;
+        private readonly LogisticsWorkflowService _workflowService;
         private readonly IHttpClientFactory _clientFactory;
 
-        public ServiceRequestsController(LogisticsDbContext context, IHttpClientFactory clientFactory)
+        public ServiceRequestsController(LogisticsWorkflowService workflowService, IHttpClientFactory clientFactory)
         {
-            _context = context;
+            _workflowService = workflowService;
             _clientFactory = clientFactory;
         }
 
-        // GET: ServiceRequests
+        // GET: ServiceRequests/Create
         public async Task<IActionResult> Create()
         {
-            ViewBag.Contracts = new SelectList(await _context.Contracts.Include(c => c.Client).ToListAsync(), "Id", "Id");
+            var contracts = await _workflowService.GetFilteredContractsAsync(null, null, null);
+            ViewBag.Contracts = new SelectList(contracts, "Id", "Id");
 
-            //Fallback exchange rate if API is down
-            decimal usdToZarRate = 18.50m;
+            decimal usdToZarRate = 18.50m; // Fallback
 
             try
             {
-                // Consume the free standard ExchangeRate-API
                 var client = _clientFactory.CreateClient();
                 var response = await client.GetAsync("https://er-api.com");
 
@@ -37,7 +35,6 @@ namespace TechMoveLogistics.Controllers
                     var jsonString = await response.Content.ReadAsStringAsync();
                     using var doc = JsonDocument.Parse(jsonString);
 
-                    //Extract the ZAR conversion metric rate
                     if (doc.RootElement.TryGetProperty("rates", out var rates) &&
                         rates.TryGetProperty("ZAR", out var zarProperty))
                     {
@@ -47,38 +44,34 @@ namespace TechMoveLogistics.Controllers
             }
             catch
             {
-                
+                //Error handling fallback
             }
 
-            // Send the live rate to the front-end view
             ViewBag.ExchangeRate = usdToZarRate;
             return View();
         }
 
-        // POST: ServiceRequests
+        // POST: ServiceRequests/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(ServiceRequest serviceRequest)
+        public async Task<IActionResult> Create(ServiceRequest serviceRequest, decimal usdAmount, decimal exchangeRate)
         {
-            var parentContract = await _context.Contracts.FirstOrDefaultAsync(c => c.Id == serviceRequest.ContractId);
+            // Delegation of all validation parameters
+            var workflowResult = await _workflowService.ProcessServiceRequestAsync(serviceRequest, usdAmount, exchangeRate);
 
-            if (parentContract == null)
+            if (!workflowResult.IsValid)
             {
-                ModelState.AddModelError("ContractId", "The selected contract does not exist.");
-            }
-            else if (parentContract.Status == ContractStatus.Expired || parentContract.Status == ContractStatus.OnHold)
-            {
-                ModelState.AddModelError("ContractId", $"Workflow Violation: Cannot log requests against an {parentContract.Status} contract.");
+                ModelState.AddModelError("ContractId", workflowResult.ErrorMessage);
             }
 
             if (ModelState.IsValid)
             {
-                _context.Add(serviceRequest);
-                await _context.SaveChangesAsync();
                 return RedirectToAction("Index", "Contracts");
             }
 
-            ViewBag.Contracts = new SelectList(await _context.Contracts.ToListAsync(), "Id", "Id", serviceRequest.ContractId);
+            var contractsFallback = await _workflowService.GetFilteredContractsAsync(null, null, null);
+            ViewBag.Contracts = new SelectList(contractsFallback, "Id", "Id", serviceRequest.ContractId);
+            ViewBag.ExchangeRate = exchangeRate;
             return View(serviceRequest);
         }
     }

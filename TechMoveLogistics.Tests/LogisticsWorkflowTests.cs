@@ -5,59 +5,64 @@ namespace TechMoveLogistics.Tests
 {
     public class LogisticsWorkflowTests
     {
-       
-        // TEST 1: Currency calculation validation
-   
         [Fact]
-        public void CalculateZarCost_GivenUsdAndExchangeRate_ReturnsCorrectProductMath()
+        public void CalculateZarCost_GivenStandardInputs_ReturnsCorrectProductMath()
         {
-            
-            decimal usdAmount = 150.00m;
-            decimal liveExchangeRate = 18.25m; 
-            decimal expectedZarResult = 2737.50m; // 150 * 18.25
+            decimal usdAmount = 100.00m;
+            decimal liveExchangeRate = 18.50m;
+            decimal expectedZarResult = 1850.00m;
 
-            decimal actualZarResult = usdAmount * liveExchangeRate;
+            var strategy = ServiceFactory.GetCostStrategy("Standard");
+            decimal actualZarResult = strategy.CalculateFinalCost(usdAmount, liveExchangeRate);
 
-            // Verify accuracy
             Assert.Equal(expectedZarResult, actualZarResult);
         }
 
-       
-        // TEST 2: File Validation for restricted type block
-      
+        // EDGE CASE: Zero Currency Boundaries
+        [Fact]
+        public void CalculateZarCost_GivenZeroUsdValue_ReturnsZeroZar()
+        {
+            decimal usdAmount = 0.00m;
+            decimal liveExchangeRate = 18.50m;
+
+            var strategy = ServiceFactory.GetCostStrategy("Standard");
+            decimal actualZarResult = strategy.CalculateFinalCost(usdAmount, liveExchangeRate);
+
+            Assert.Equal(0.00m, actualZarResult);
+        }
+
         [Theory]
         [InlineData(".exe")]
         [InlineData(".msi")]
         [InlineData(".png")]
         public void ValidateFileExtension_GivenRestrictedType_ReturnsFalse(string badExtension)
         {
-            // Arrange
-            string simulatedUploadedFileName = "signed_contract_malware" + badExtension;
+            string simulatedUploadedFileName = "malicious_file" + badExtension;
+            string extension = Path.GetExtension(simulatedUploadedFileName).ToLower();
+            bool isAllowedPdf = (extension == ".pdf");
 
-            // Act
-            string actualExtension = Path.GetExtension(simulatedUploadedFileName).ToLower();
-            bool isAllowedPdf = (actualExtension == ".pdf");
-
-            // Assert
-            Assert.False(isAllowedPdf, $"Security Flaw: System should block '{badExtension}' from being processed.");
+            Assert.False(isAllowedPdf);
         }
 
-       
-        // TEST 3: File validation for allowed PDF Success
-        
+        // EDGE CASE TEST: Handle null file exception parameters
         [Fact]
-        public void ValidateFileExtension_GivenPdfFormat_ReturnsTrue()
+        public void ValidateFileExtension_GivenNullOrEmptyInput_ReturnsFalse()
         {
-            // Arrange
-            string safeFileName = "official_agreement.pdf";
+            string emptyFileName = "";
+            string extension = Path.GetExtension(emptyFileName).ToLower();
+            bool isAllowedPdf = (extension == ".pdf");
 
-            // Act
+            Assert.False(isAllowedPdf);
+        }
+
+        [Fact]
+        public void ValidateFileExtension_GivenValidPdfFormat_ReturnsTrue()
+        {
+            string safeFileName = "signed_agreement.pdf";
             string extension = Path.GetExtension(safeFileName).ToLower();
             bool isAllowedPdf = (extension == ".pdf");
 
-            // Assert
             Assert.True(isAllowedPdf);
         }
     }
 }
-

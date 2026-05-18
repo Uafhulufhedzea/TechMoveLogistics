@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
 using TechMoveLogistics.Data;
 using TechMoveLogistics.Models;
 
@@ -8,54 +7,36 @@ namespace TechMoveLogistics.Controllers
 {
     public class ContractsController : Controller
     {
-        private readonly LogisticsDbContext _context;
+        private readonly LogisticsWorkflowService _workflowService;
         private readonly IWebHostEnvironment _environment;
 
-        public ContractsController(LogisticsDbContext context, IWebHostEnvironment environment)
+        public ContractsController(LogisticsWorkflowService workflowService, IWebHostEnvironment environment)
         {
-            _context = context;
+            _workflowService = workflowService;
             _environment = environment;
         }
 
         // GET: Contracts
         public async Task<IActionResult> Index(DateTime? startDate, DateTime? endDate, ContractStatus? statusFilter)
         {
-            // Query capture matching IQueryable tracking
-            var contractsQuery = _context.Contracts.Include(c => c.Client).AsQueryable();
+            var filteredContracts = await _workflowService.GetFilteredContractsAsync(startDate, endDate, statusFilter);
 
-            //LINQ Filter by Status if provided
-            if (statusFilter.HasValue)
-            {
-                contractsQuery = contractsQuery.Where(c => c.Status == statusFilter.Value);
-            }
-
-            //LINQ Filter by Date Ranges if provided
-            if (startDate.HasValue)
-            {
-                contractsQuery = contractsQuery.Where(c => c.StartDate >= startDate.Value);
-            }
-
-            if (endDate.HasValue)
-            {
-                contractsQuery = contractsQuery.Where(c => c.EndDate <= endDate.Value);
-            }
-
-            //Pass options back to UI
             ViewBag.StatusFilter = statusFilter;
             ViewBag.StartDate = startDate?.ToString("yyyy-MM-dd");
             ViewBag.EndDate = endDate?.ToString("yyyy-MM-dd");
 
-            return View(await contractsQuery.ToListAsync());
+            return View(filteredContracts);
         }
 
-        // GET: Contract
+        // GET: Contracts/Create
         public async Task<IActionResult> Create()
         {
-            ViewBag.Clients = new SelectList(await _context.Clients.ToListAsync(), "Id", "Name");
+            var clients = await _workflowService.GetAllClientsAsync();
+            ViewBag.Clients = new SelectList(clients, "Id", "Name");
             return View();
         }
 
-        // POST: Contracts
+        // POST: Contracts/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Contract contract, IFormFile? signedAgreement)
@@ -64,39 +45,35 @@ namespace TechMoveLogistics.Controllers
             {
                 if (signedAgreement != null && signedAgreement.Length > 0)
                 {
-                    // PDF validation
                     var fileExtension = Path.GetExtension(signedAgreement.FileName).ToLower();
                     if (fileExtension != ".pdf")
                     {
                         ModelState.AddModelError("SignedAgreementFileName", "Only PDF files are allowed.");
-                        ViewBag.Clients = new SelectList(await _context.Clients.ToListAsync(), "Id", "Name", contract.ClientId);
+                        var clientsList = await _workflowService.GetAllClientsAsync();
+                        ViewBag.Clients = new SelectList(clientsList, "Id", "Name", contract.ClientId);
                         return View(contract);
                     }
 
-                    // Create unique file name
+                    // UUID naming standard
                     string uniqueFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(signedAgreement.FileName);
                     string uploadFolder = Path.Combine(_environment.WebRootPath, "uploads", "agreements");
                     string filePath = Path.Combine(uploadFolder, uniqueFileName);
 
-                    // Saving file to the wwwroot folder path
                     using (var fileStream = new FileStream(filePath, FileMode.Create))
                     {
                         await signedAgreement.CopyToAsync(fileStream);
                     }
 
-                    // Storing details in DB
                     contract.SignedAgreementFileName = signedAgreement.FileName;
                     contract.SignedAgreementFilePath = "/uploads/agreements/" + uniqueFileName;
                 }
 
-                _context.Add(contract);
-                await _context.SaveChangesAsync();
-
-                //Redirect admin to the view matrix table list
+                await _workflowService.SaveContractAsync(contract);
                 return RedirectToAction(nameof(Index));
             }
 
-            ViewBag.Clients = new SelectList(await _context.Clients.ToListAsync(), "Id", "Name", contract.ClientId);
+            var clientsFallback = await _workflowService.GetAllClientsAsync();
+            ViewBag.Clients = new SelectList(clientsFallback, "Id", "Name", contract.ClientId);
             return View(contract);
         }
     }
