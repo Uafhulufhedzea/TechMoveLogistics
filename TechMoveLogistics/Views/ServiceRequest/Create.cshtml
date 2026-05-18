@@ -1,0 +1,81 @@
+﻿@model TechMoveLogistics.Models.ServiceRequest
+
+@{
+    ViewData["Title"] = "Log Logistics Request";
+}
+
+<h2>Log New Service Request</h2>
+<hr />
+
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Create" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="form-group mb-3">
+                <label asp-for="ContractId" class="control-label fw-bold">Select Active Contract ID</label>
+                <select asp-for="ContractId" class="form-control" asp-items="ViewBag.Contracts">
+                    <option value="">-- Select Contract --</option>
+                </select>
+                <span asp-validation-for="ContractId" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Description" class="control-label fw-bold"></label>
+                <textarea asp-for="Description" class="form-control" rows="3" placeholder="Enter transit/cargo details..."></textarea>
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+
+            
+            <div class="alert alert-info py-2 mb-3">
+                <small class="fw-bold"> Live API Exchange Rate: 1 USD = @ViewBag.ExchangeRate ZAR</small>
+               
+                <input type="hidden" id="exchangeRate" value="@ViewBag.ExchangeRate" />
+            </div>
+
+            <div class="form-group mb-3">
+                <label class="control-label fw-bold">Cost in USD ($)</label>
+                <input type="number" id="usdAmount" class="form-control" step="0.01" placeholder="0.00" required />
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Cost" class="control-label fw-bold">Final Cost in ZAR (R) - Saved to DB</label>
+                <input asp-for="Cost" id="zarAmount" class="form-control" type="number" step="0.01" readonly />
+                <span asp-validation-for="Cost" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-4">
+                <label asp-for="Status" class="control-label fw-bold"></label>
+                <input asp-for="Status" class="form-control" value="Pending" readonly />
+            </div>
+
+            <div class="form-group">
+                <input type="submit" value="Submit Request" class="btn btn-success px-4" />
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script type="text/javascript">
+        document.addEventListener("DOMContentLoaded", function () {
+        const usdInput = document.getElementById("usdAmount");
+        const zarInput = document.getElementById("zarAmount");
+        const rateInput = document.getElementById("exchangeRate");
+
+        // Attach event listener to calculate live when user types
+        usdInput.addEventListener("input", function () {
+        const usdValue = parseFloat(usdInput.value);
+        const rate = parseFloat(rateInput.value);
+
+        if (!isNaN(usdValue) && !isNaN(rate)) {
+        // Calculate the local cost matching the requirement
+        const calculatedZar = usdValue * rate;
+        zarInput.value = calculatedZar.toFixed(2);
+        } else {
+        zarInput.value = "";
+        }
+        });
+        });
+    </script>
+}

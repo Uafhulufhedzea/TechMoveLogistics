@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="TechMoveLogistics.Tests/TechMoveLogistics.Tests.csproj" />
+  <Project Path="TechMoveLogistics/TechMoveLogistics.csproj" />
+</Solution>

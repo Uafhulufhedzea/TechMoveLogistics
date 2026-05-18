@@ -1,0 +1,61 @@
+﻿@model TechMoveLogistics.Models.Contract
+@using TechMoveLogistics.Models
+
+@{
+    ViewData["Title"] = "Create Contract Hub";
+}
+
+<h2>Create New Contract</h2>
+<hr />
+
+<div class="row">
+    <div class="col-md-6">
+     
+        <form asp-action="Create" enctype="multipart/form-data" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="form-group mb-3">
+                <label asp-for="ClientId" class="control-label fw-bold"></label>
+                <select asp-for="ClientId" class="form-control" asp-items="ViewBag.Clients">
+                    <option value="">-- Select Client --</option>
+                </select>
+                <span asp-validation-for="ClientId" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="StartDate" class="control-label fw-bold"></label>
+                <input asp-for="StartDate" class="form-control" type="date" />
+                <span asp-validation-for="StartDate" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="EndDate" class="control-label fw-bold"></label>
+                <input asp-for="EndDate" class="form-control" type="date" />
+                <span asp-validation-for="EndDate" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Status" class="control-label fw-bold"></label>
+                <select asp-for="Status" class="form-control" asp-items="Html.GetEnumSelectList<ContractStatus>()"></select>
+                <span asp-validation-for="Status" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="ServiceLevel" class="control-label fw-bold"></label>
+                <input asp-for="ServiceLevel" class="form-control" placeholder="e.g., Premium, Standard" />
+                <span asp-validation-for="ServiceLevel" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-4">
+                <label class="control-label fw-bold">Upload Signed Agreement (PDF Only)</label>
+                <input type="file" name="signedAgreement" class="form-control" accept=".pdf" required />
+                <span asp-validation-for="SignedAgreementFileName" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <input type="submit" value="Register Contract" class="btn btn-primary px-4" />
+            </div>
+        </form>
+    </div>
+</div>
+

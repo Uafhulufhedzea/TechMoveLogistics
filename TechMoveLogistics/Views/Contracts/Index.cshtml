@@ -1,0 +1,89 @@
+﻿@model IEnumerable<TechMoveLogistics.Models.Contract>
+@using TechMoveLogistics.Models
+
+@{
+    ViewData["Title"] = "Admin Contract Registry";
+}
+
+<h2>Admin Contract Registry Search Hub</h2>
+<hr />
+
+<form method="get" asp-action="Index" class="row g-3 bg-light p-3 rounded mb-4 shadow-sm">
+    <div class="col-md-3">
+        <label class="form-label fw-bold">From Date</label>
+        <input type="date" name="startDate" value="@ViewBag.StartDate" class="form-control" />
+    </div>
+    <div class="col-md-3">
+        <label class="form-label fw-bold">To Date</label>
+        <input type="date" name="endDate" value="@ViewBag.EndDate" class="form-control" />
+    </div>
+    <div class="col-md-3">
+        <label class="form-label fw-bold">Status Filter</label>
+        <select name="statusFilter" class="form-control">
+            <option value="">-- All Statuses --</option>
+            @foreach (var status in Enum.GetValues(typeof(ContractStatus)))
+            {
+                if (ViewBag.StatusFilter != null && (ContractStatus)ViewBag.StatusFilter == (ContractStatus)status)
+                {
+                    <option value="@status" selected="selected">@status</option>
+                }
+                else
+                {
+                    <option value="@status">@status</option>
+                }
+            }
+        </select>
+    </div>
+    <div class="col-md-3 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary w-100 fw-bold">Execute Search</button>
+    </div>
+</form>
+
+<table class="table table-bordered table-striped align-middle">
+    <thead class="table-dark">
+        <tr>
+            <th>Contract ID</th>
+            <th>Client Name</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Status</th>
+            <th>SLA Agreement</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (!Model.Any())
+        {
+            <tr>
+                <td colspan="6" class="text-center text-muted py-3">No contracts match the chosen search criteria.</td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.Id</td>
+                    <td>@(item.Client?.Name ?? "Unlinked")</td>
+                    <td>@item.StartDate.ToString("yyyy-MM-dd")</td>
+                    <td>@item.EndDate.ToString("yyyy-MM-dd")</td>
+                    <td>
+                        <span class="badge @(item.Status == ContractStatus.Active ? "bg-success" : item.Status == ContractStatus.Expired ? "bg-danger" : "bg-warning")">
+                            @item.Status
+                        </span>
+                    </td>
+                    <td>
+                        @if (!string.IsNullOrEmpty(item.SignedAgreementFilePath))
+                        {
+                            <a href="@item.SignedAgreementFilePath" target="_blank" class="btn btn-sm btn-outline-secondary">Download PDF Document</a>
+                        }
+                        else
+                        {
+                            <span class="text-muted">No Document File</span>
+                        }
+                    </td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+
