@@ -1,0 +1,19 @@
+FROM ://microsoft.com AS base
+WORKDIR /app
+EXPOSE 8080
+
+FROM ://microsoft.com AS build
+WORKDIR /src
+COPY ["TechMoveLogistics/TechMoveLogistics.csproj", "TechMoveLogistics/"]
+RUN dotnet restore "TechMoveLogistics/TechMoveLogistics.csproj"
+COPY . .
+WORKDIR "/src/TechMoveLogistics"
+RUN dotnet build "TechMoveLogistics.csproj" -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish "TechMoveLogistics.csproj" -c Release -o /app/publish
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "TechMoveLogistics.dll"]

@@ -1,0 +1,20 @@
+FROM ://microsoft.com AS base
+WORKDIR /app
+EXPOSE 8080
+
+FROM ://microsoft.com AS build
+WORKDIR /src
+COPY ["TechMove.API/TechMove.API.csproj", "TechMove.API/"]
+COPY ["TechMoveLogistics/TechMoveLogistics.csproj", "TechMoveLogistics/"]
+RUN dotnet restore "TechMove.API/TechMove.API.csproj"
+COPY . .
+WORKDIR "/src/TechMove.API"
+RUN dotnet build "TechMove.API.csproj" -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish "TechMove.API.csproj" -c Release -o /app/publish --no-dependencies
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "TechMove.API.dll"]

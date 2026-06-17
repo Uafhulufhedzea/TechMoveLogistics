@@ -1,0 +1,48 @@
+services:
+  sql-server-db:
+    image: ://microsoft.com
+    container_name: sql-server-db
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=SuperSecurePassword123!
+    ports:
+      - "1433:1433"
+    networks:
+      - glms-network
+
+  glms-backend-api:
+    image: techmove-api
+    container_name: glms-backend-api
+    build:
+      context: ./TechMove.API
+      dockerfile: dockerfile
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=sql-server-db;Database=TechMoveLogisticsDb;User Id=sa;Password=SuperSecurePassword123!;TrustServerCertificate=True
+      - Jwt__Key=SuperSecretTechMoveLogisticsKey2026!
+      - Jwt__Issuer=TechMoveAPI
+      - Jwt__Audience=TechMoveMVC
+    ports:
+      - "5001:8080"
+    depends_on:
+      - sql-server-db
+    networks:
+      - glms-network
+
+  glms-frontend-web:
+    image: techmove-mvc
+    container_name: glms-frontend-web
+    build:
+      context: ./TechMoveLogistics
+      dockerfile: dockerfile
+    environment:
+      - TechMoveAPI__BaseAddress=http://glms-backend-api:8080/
+    ports:
+      - "5000:8080"
+    depends_on:
+      - glms-backend-api
+    networks:
+      - glms-network
+
+networks:
+  glms-network:
+    driver: bridge

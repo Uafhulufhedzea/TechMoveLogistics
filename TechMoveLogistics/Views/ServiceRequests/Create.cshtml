@@ -62,21 +62,42 @@
 @section Scripts {
     <script type="text/javascript">
         document.addEventListener("DOMContentLoaded", function () {
-        const usdInput = document.getElementById("usdAmount");
-        const zarInput = document.getElementById("zarAmount");
-        const rateInput = document.getElementById("exchangeRate");
+            const usdInput = document.getElementById("usdAmount");
+            const zarInput = document.getElementById("zarAmount");
+            const rateInput = document.getElementById("exchangeRate");
+            const infoBadge = document.querySelector(".alert-info small");
 
-        usdInput.addEventListener("input", function () {
-        const usdValue = parseFloat(usdInput.value);
-        const rate = parseFloat(rateInput.value);
+            // Fetch live exchange rate from API
+            fetch("/ServiceRequests/GetLiveRateValue")
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.rate) {
+                        rateInput.value = data.rate;
+                        if (infoBadge) {
+                            infoBadge.textContent = "Live API Exchange Rate: 1 USD = " + data.rate.toFixed(2) + " ZAR";
+                        }
+                        // Trigger calculation if USD value already entered
+                        if (usdInput.value) {
+                            usdInput.dispatchEvent(new Event("input"));
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error("Failed to fetch exchange rate:", err);
+                    // Fallback rate already in hidden input
+                });
 
-        if (!isNaN(usdValue) && !isNaN(rate)) {
-        const calculatedZar = usdValue * rate;
-        zarInput.value = calculatedZar.toFixed(2);
-        } else {
-        zarInput.value = "";
-        }
-        });
+            usdInput.addEventListener("input", function () {
+                const usdValue = parseFloat(usdInput.value);
+                const rate = parseFloat(rateInput.value);
+
+                if (!isNaN(usdValue) && !isNaN(rate)) {
+                    const calculatedZar = usdValue * rate;
+                    zarInput.value = calculatedZar.toFixed(2);
+                } else {
+                    zarInput.value = "";
+                }
+            });
         });
     </script>
 }
