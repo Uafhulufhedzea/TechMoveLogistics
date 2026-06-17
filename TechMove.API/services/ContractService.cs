@@ -85,7 +85,6 @@ namespace TechMove.API.Services
             var contract = await _context.Contracts.FindAsync(dto.ContractId);
             if (contract == null) return null;
 
-            // Task 2 Workflow Validation Rule: Block creation if contract is Expired or On Hold
             if (contract.Status == ContractStatus.Expired || contract.Status == ContractStatus.OnHold)
             {
                 throw new InvalidOperationException("Cannot create service requests for Expired or On Hold contracts.");
